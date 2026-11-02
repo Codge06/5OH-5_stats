@@ -188,11 +188,18 @@ function allView(){const ss=seasons(),{rows,games}=stats(ss),q=rows.filter(o=>o.
  <div class="card"><h2>Goals per season</h2>${cols(per.map(p=>p.rows.reduce((a,o)=>a+o.g,0)),ss.map(s=>'S'+s.n))}</div><div class="card"><h2>Games per season</h2>${cols(ss.map(s=>s.g.length),ss.map(s=>'S'+s.n))}</div>
  <div class="card"><h2>Golden Boot winners</h2>${win('g')}</div><div class="card"><h2>Most apps winners</h2>${win('a')}</div></div>
  <div class="card"><h2>Full all-time table</h2>${table(rows,false,games)}</div>`}
+function vsOpp(pn){const out=[];oppGroups().forEach(o=>{let gp=0,gl=0,w=0,d=0,l=0;o.g.forEach(f=>{const g=gameOf(f);if(!g)return;const me=g.p.find(x=>x[0]==pn);if(!me)return;gp++;gl+=me[1];f.us>f.them?w++:f.us<f.them?l++:d++});if(gp)out.push({n:o.name,gp,gl,w,d,l,r:gl/gp})});return out.sort((a,b)=>b.gl-a.gl||b.r-a.r||b.gp-a.gp)}
+function vsCard(pn){const v=vsOpp(pn),af=allFX().filter(f=>f.t).map(f=>f.d).sort(),st=af[0];
+ const note=`<p class="mut">Based on games with a match report${st?' (from '+fd(st)+')':''} where the opponent is named and ${esc(pn)} played. We don't have reports from before that date.</p>`;
+ if(!v.length)return `<div class="card"><h2>Against each opponent</h2>${note}<p class="mut">${esc(pn)} has no games against a named opponent in the reports.</p></div>`;
+ const top=v.filter(x=>x.gl>0).slice(0,3),hl=top.length?`<p style="font-size:15px;margin:8px 0"><b>Most goals against:</b> ${top.map(x=>`${esc(x.n)} (${x.gl} in ${x.gp} game${x.gp>1?'s':''})`).join(' · ')}</p>`:`<p class="mut">No goals against any named opponent yet.</p>`;
+ return `<div class="card"><h2>Against each opponent</h2>${note}${hl}${bars(v.filter(x=>x.gl>0),'gl')}
+ <h3>All opponents faced</h3><div class="wrap"><table><tr><th style="text-align:left">Opponent</th><th>Games</th><th>Goals</th><th>Goals / game</th><th>Team W-D-L</th></tr>${v.map(x=>`<tr><td style="text-align:left">${esc(x.n)}</td><td>${x.gp}</td><td><b>${x.gl}</b></td><td>${f2(x.r)}</td><td>${x.w}-${x.d}-${x.l}</td></tr>`).join('')}</table></div></div>`}
 function playerView(){const ss=seasons(),{rows,games}=stats(ss),per=ss.map(s=>stats([s]));const pn=prof||[...rows].sort((a,b)=>b.a-a.a)[0].n;const ps=ss.map((s,i)=>per[i].rows.find(o=>o.n==pn)||{a:0,g:0});const po=rows.find(o=>o.n==pn)||{a:0,g:0,r:0};
  const tr=ss.map((s,i)=>ps[i].a||ps[i].g?`<tr><td>Season ${s.n}</td><td>${ps[i].a}</td><td>${ps[i].g}</td><td>${ps[i].a?f2(ps[i].g/ps[i].a):'–'}</td></tr>`:'').join('');
  return `<div class="card"><h2>Player analysis</h2><select onchange="prof=this.value;draw()">${rows.map(o=>o.n).sort().map(n=>`<option ${n==pn?'selected':''}>${esc(n)}</option>`).join('')}</select>
  <div class="kpis" style="margin-top:12px">${kpi(po.a,'Appearances')}${kpi(po.g,'Goals')}${kpi(f2(po.r),'Goals / game')}</div>
- <div class="two"><div><h3>Goals by season</h3>${cols(ps.map(p=>p.g),ss.map(s=>'S'+s.n))}</div><div><h3>Apps by season</h3>${cols(ps.map(p=>p.a),ss.map(s=>'S'+s.n))}</div></div><h3>Season by season</h3><div class="wrap"><table><tr><th style="text-align:left">Season</th><th>Apps</th><th>Goals</th><th>Goals / game</th></tr>${tr}</table></div></div>`}
+ <div class="two"><div><h3>Goals by season</h3>${cols(ps.map(p=>p.g),ss.map(s=>'S'+s.n))}</div><div><h3>Apps by season</h3>${cols(ps.map(p=>p.a),ss.map(s=>'S'+s.n))}</div></div><h3>Season by season</h3><div class="wrap"><table><tr><th style="text-align:left">Season</th><th>Apps</th><th>Goals</th><th>Goals / game</th></tr>${tr}</table></div></div>${vsCard(pn)}`}
 function draw(){$('#app').innerHTML=(tab=='m'?matchDay():tab=='s'?seasonView():tab=='p'?playerView():tab=='o'?oppView():allView())+(tab=='s'||tab=='o'?repModal():'');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab))}
 document.querySelector('nav').onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;draw()}};
 function tg(n){pick.has(n)?pick.delete(n):pick.set(n,0);draw()}
